@@ -35,15 +35,15 @@ mongoose
 
 // The End of connecting mongoDb database to node js
 
-// Start of listening to the server to connect to  node js
+// Start of listening to the server to connect to  node js...........................
 
 app.listen(process.env.PORT, () => {
   console.log(`Server is connected on port ${process.env.PORT}`);
 });
 
-// End of listening to the server to connect to  node js
+// End of listening to the server to connect to  node js........................
 
-// This is the start of the nodemailer code
+// This is the start of the nodemailer code..............................................
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -53,9 +53,10 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// This is the End of the nodemailer code
+// This is the End of the nodemailer code...................................
 
-// This is the start of the testing of the signup
+
+// This is the start of the testing of the signup...............................................
 
 require("./user/userDetails");
 
@@ -125,7 +126,10 @@ app.get("/verify-email", async (req, res) => {
   }
 });
 
-// This is the Signin testing....................................
+// This is the End of the testing of the signup.....................................................
+
+
+// This is the Signin testing...................................................
 
 const activeSessions = new Map(); // To track user sessions and activity
 
@@ -182,10 +186,11 @@ app.post("/logout", (req, res) => {
   res.status(400).json({ message: "Invalid token or user already logged out" });
 });
 
-// This is the End of the testing of the signup
+// This is the End of the testing of the signin
 
 
-// This is the forgot password code ...................
+// This is the forgot password code starting ...................................................
+
 // API to request password reset
 app.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
@@ -220,3 +225,5 @@ app.post("/reset-password", async (req, res) => {
   await user.save();
   res.json({ message: "Password reset successfully!" });
 });
+
+// This is the forgot password code Ending ...................................................
