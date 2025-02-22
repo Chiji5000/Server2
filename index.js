@@ -140,6 +140,7 @@ const trackActivity = (req, res, next) => {
     clearTimeout(activeSessions.get(token).timeout);
     activeSessions.get(token).timeout = setTimeout(() => {
       activeSessions.delete(token);
+      console.log("User has been logged out due to inactivity.");
     }, 180000); // 3 minutes inactivity logout
   }
   next();
@@ -176,12 +177,15 @@ app.post("/login", async (req, res) => {
 });
 
 // API to logout
+
 app.post("/logout", (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (token && activeSessions.has(token)) {
     clearTimeout(activeSessions.get(token).timeout);
     activeSessions.delete(token);
-    return res.json({ message: "User logged out successfully" });
+    return res.json({
+      message: "User logged out successfully. Redirecting to home page...",
+    });
   }
   res.status(400).json({ message: "Invalid token or user already logged out" });
 });
