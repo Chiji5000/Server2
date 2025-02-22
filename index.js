@@ -33,7 +33,8 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.log("Failed to connect to MongoDB", err));
 
-// The End of connecting mongoDb database to node js
+// The End of connecting mongoDb database to node js................
+
 
 // Start of listening to the server to connect to  node js...........................
 
@@ -47,6 +48,9 @@ app.listen(process.env.PORT, () => {
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
+  post: Number(process.env.EMAIL_PORT),
+  secure: Boolean(process.env.SECURE),
+  host: process.env.HOST,
   auth: {
     user: process.env.USER, // Replace with your email
     pass: process.env.PASS, // Replace with your email password or app password
@@ -188,7 +192,6 @@ app.post("/logout", (req, res) => {
   }
   res.status(400).json({ message: "Invalid token or user already logged out" });
 });
-
 
 // This is the End of the testing of the signin
 
