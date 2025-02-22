@@ -129,7 +129,7 @@ app.get("/verify-email", async (req, res) => {
 
 const activeSessions = new Map(); // To track user sessions and activity
 
-// Middleware to track user activity
+// Code to track user activity
 const trackActivity = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (token && activeSessions.has(token)) {
