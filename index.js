@@ -183,12 +183,12 @@ app.post("/logout", (req, res) => {
   if (token && activeSessions.has(token)) {
     clearTimeout(activeSessions.get(token).timeout);
     activeSessions.delete(token);
-    return res.json({
-      message: "User logged out successfully. Redirecting to home page...",
-    });
+    console.log("User has been logged out successfully.");
+    return res.redirect("http://your-frontend-homepage.com"); // Redirect to homepage
   }
   res.status(400).json({ message: "Invalid token or user already logged out" });
 });
+
 
 // This is the End of the testing of the signin
 
