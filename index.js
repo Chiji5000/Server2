@@ -82,52 +82,43 @@ app.post("/send-email", async (req, res) => {
     return res.status(400).json({ message: "Username already registered" });
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
   const verificationToken = uuidv4();
-  const newUser = new User({
-    name,
-    email,
-    phone,
-    password: hashedPassword,
-    verificationToken,
-  });
-  await newUser.save();
 
-  const verificationLink = `http://localhost:5000/verify-email?token=${verificationToken}&email=${email}`;
+  const verificationLink = `http://localhost:5000/verify-email?token=${verificationToken}&email=${email}&name=${name}&phone=${phone}&password=${encodeURIComponent(password)}`;
 
-  const mailOptions = {
+   await transporter.sendMail({
     from: process.env.HOST,
     to: email,
     subject: "Your Verification Code",
     text: `Click the following link to verify your email: ${verificationLink}`,
-  };
+   });
 
-  try {
-    await transporter.sendMail(mailOptions);
-    res.json({
-      message: "User registered! Verification email sent.",
-      link: verificationLink,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Error sending email", error });
-  }
+  res.json({ message: "Signup successful. Please check your email to verify your account." });
+  
 });
 
-// API to verify email using the link
-app.get("/verify-email", async (req, res) => {
-  const { email, token } = req.query;
-  if (!email || !token)
-    return res.status(400).json({ message: "Email and token are required" });
+// API to verify email using the link--------------------------
 
-  const user = await User.findOne({ email, verificationToken: token });
-  if (user) {
-    user.isVerified = true;
-    user.verificationToken = null;
+app.get("/verify-email", async (req, res) => {
+    const { email, token, name, phone, password } = req.query;
+    if (!email || !token || !name || !phone || !password) return res.status(400).json({ message: "All fields are required." });
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: "User already verified." });
+
+    const hashedPassword = await bcrypt.hash(decodeURIComponent(password), 10);
+
+    const user = new User({
+        name,
+        email,
+        phone,
+        password: hashedPassword,
+        isVerified: true,
+        verificationToken: null
+    });
     await user.save();
-    res.json({ message: "Email verified successfully!" });
-  } else {
-    res.status(400).json({ message: "Invalid or expired verification link" });
-  }
+
+    res.json({ message: "Email verified successfully." });
 });
 
 // This is the End of the testing of the signup.....................................................
@@ -139,15 +130,15 @@ const activeSessions = new Map(); // To track user sessions and activity
 
 // Code to track user activity
 const trackActivity = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (token && activeSessions.has(token)) {
-    clearTimeout(activeSessions.get(token).timeout);
-    activeSessions.get(token).timeout = setTimeout(() => {
-      activeSessions.delete(token);
-      console.log("User has been logged out due to inactivity.");
-    }, 180000); // 3 minutes inactivity logout
-  }
-  next();
+    const token = req.headers.authorization?.split(" ")[1];
+    if (token && activeSessions.has(token)) {
+        clearTimeout(activeSessions.get(token).timeout);
+        activeSessions.get(token).timeout = setTimeout(() => {
+            activeSessions.delete(token);
+            console.log("User has been logged out due to inactivity.");
+        }, 180000); // 3 minutes inactivity logout
+    }
+    next();
 };
 
 app.use(trackActivity);
