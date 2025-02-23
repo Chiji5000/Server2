@@ -63,8 +63,10 @@ const transporter = nodemailer.createTransport({
 // This is the start of the testing of the signup...............................................
 
 require("./user/userDetails");
+require("./user/pendingUser");
 
 const User = mongoose.model("User");
+const PendingUser = mongoose.model("PendingUser");
 
 app.post("/send-email", async (req, res) => {
   const { name, email, phone, password } = req.body;
@@ -82,7 +84,18 @@ app.post("/send-email", async (req, res) => {
     return res.status(400).json({ message: "Username already registered" });
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
   const verificationToken = uuidv4();
+
+      const pendingUser = new PendingUser({
+        name,
+        email,
+        phone,
+        password: hashedPassword,
+        verificationToken,
+      });
+      await pendingUser.save();
+
 
   const verificationLink = `http://localhost:5000/verify-email?token=${verificationToken}&email=${email}&name=${name}&phone=${phone}&password=${encodeURIComponent(password)}`;
 
@@ -100,27 +113,37 @@ app.post("/send-email", async (req, res) => {
 // API to verify email using the link--------------------------
 
 app.get("/verify-email", async (req, res) => {
-    const { email, token, name, phone, password } = req.query;
-    if (!email || !token || !name || !phone || !password) return res.status(400).json({ message: "All fields are required." });
+  const { email, token } = req.query;
+  if (!email || !token)
+    return res.status(400).json({ message: "Invalid verification link." });
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: "User already verified." });
+  const pendingUser = await PendingUser.findOne({
+    email,
+    verificationToken: token,
+  });
+  if (!pendingUser)
+    return res.status(400).json({ message: "Invalid or expired token." });
 
-    const hashedPassword = await bcrypt.hash(decodeURIComponent(password), 10);
+  const user = new User({
+    name: pendingUser.name,
+    email: pendingUser.email,
+    phone: pendingUser.phone,
+    password: pendingUser.password,
+    isVerified: true,
+  });
+  await user.save();
+  await PendingUser.deleteOne({ email });
 
-    const user = new User({
-        name,
-        email,
-        phone,
-        password: hashedPassword,
-        isVerified: true,
-        verificationToken: null
-    });
-    await user.save();
+  // Generate a JWT token
+  const jwtToken = jwt.sign({ userId: user._id }, "your-secret-key", {
+    expiresIn: "1h",
+  });
 
-    res.json({ message: "Email verified successfully." });
+  res.json({
+    message: "Email verified successfully. Please set up a 6-digit PIN.",
+    token: jwtToken,
+  });
 });
-
 // This is the End of the testing of the signup.....................................................
 
 
@@ -142,6 +165,54 @@ const trackActivity = (req, res, next) => {
 };
 
 app.use(trackActivity);
+
+// API to set PIN
+app.post("/set-pin", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Unauthorized." });
+
+  try {
+    const decoded = jwt.verify(token, "your-secret-key");
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(400).json({ message: "User not found." });
+
+    const { pin } = req.body;
+    if (!pin || pin.length !== 6)
+      return res.status(400).json({ message: "Invalid PIN." });
+
+    const hashedPin = await bcrypt.hash(pin, 10);
+    user.purchasePin = hashedPin;
+    await user.save();
+
+    res.json({ message: "PIN set successfully." });
+  } catch (error) {
+    res.status(401).json({ message: "Invalid or expired token." });
+  }
+});
+
+// API to verify PIN during purchase (User must be logged in)
+app.post("/verify-pin", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token)
+    return res.status(401).json({ message: "Unauthorized. Please log in." });
+
+  try {
+    const decoded = jwt.verify(token, "your-secret-key");
+    const user = await User.findById(decoded.userId);
+    if (!user || !user.purchasePin)
+      return res.status(400).json({ message: "Invalid request." });
+
+    const { pin } = req.body;
+    if (!pin) return res.status(400).json({ message: "PIN is required." });
+
+    const isMatch = await bcrypt.compare(pin, user.purchasePin);
+    if (!isMatch) return res.status(400).json({ message: "Invalid PIN." });
+
+    res.json({ message: "PIN verified. Purchase authorized." });
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid or expired token." });
+  }
+});
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;

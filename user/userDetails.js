@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema({
   resetPasswordToken: { type: String },
   isVerified: { type: Boolean, default: false },
   verificationToken: { type: String },
+  purchasePin: { type: String }, // Added field for PIN
   createdAt: { type: Date, default: Date.now, expires: 3000 },
 });
     
