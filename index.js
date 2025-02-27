@@ -11,11 +11,11 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const jwt = require("jsonwebtoken");
-
+const https = require('https');
 // End of installing files i would need
 
-// Start of importing the files i installed
 
+// Start of importing the files i installed
 console.log(format(new Date(), "yyyyMMdd\tHH:mm:ss"));
 const app = express();
 dotenv.config();
@@ -25,11 +25,10 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.static("public"));
 const path = require("path");
-
 // End of importing the files i installed
 
-// Start of connecting mongoDb database to node js
 
+// Start of connecting mongoDb database to node js
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB"))
@@ -390,3 +389,47 @@ app.post("/reset-password/:token", async (req, res) => {
   });
 });
 // This is the forgot password code Ending ...................................................
+
+
+// This is the start paystack API Beginning -------------------------------------------------------------------
+app.get('/paystack', function (req, res) {
+  const https = require('https')
+
+  const params = JSON.stringify({
+    "email": req.query.email,
+    "amount": req.query.amount
+  })
+
+  const options = {
+    hostname: "api.paystack.co",
+    port: 443,
+    path: "/transaction/initialize",
+    method: "POST",
+    headers: {
+      Authorization: "Bearer sk_test_362d29e2f649f4674eab7104ab5edba3381aa7d5",
+      "Content-Type": "application/json",
+    },
+  };
+
+  const reqpaystack = https
+    .request(options, respaystack => {
+      let data = "";
+
+      respaystack.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      respaystack.on("end", () => {
+        res.send(data);
+        console.log(JSON.parse(data));
+      });
+    })
+    .on("error", (error) => {
+      console.error(error);
+    });
+
+  reqpaystack.write(params);
+  reqpaystack.end();
+
+});
+// This is the end paystack API Beginning -------------------------------------------------------------------
