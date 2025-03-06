@@ -391,13 +391,13 @@ app.post("/reset-password/:token", async (req, res) => {
 // This is the forgot password code Ending ...................................................
 
 
-// This is the start paystack API Beginning -------------------------------------------------------------------
+// This is the start VT PASS API Beginning -------------------------------------------------------------------
 app.get('/paystack', function (req, res) {
   const https = require('https')
 
   const params = JSON.stringify({
     "email": req.query.email,
-    "amount": req.query.amount
+    "amount": req.query.amount * 100
   })
 
   const options = {
@@ -433,3 +433,90 @@ app.get('/paystack', function (req, res) {
 
 });
 // This is the end paystack API Beginning -------------------------------------------------------------------
+
+// This is the end paystack API Beginning -------------------------------------------------------------------
+
+const VTpassBaseUrl = process.env.VTPASS_BASE_URL;
+const VTpassAuth = {
+  username: process.env.VTPASS_USERNAME,
+  password: process.env.VTPASS_PASSWORD,
+};
+
+/**
+ * Purchase Airtime
+ */
+app.post("/buy-airtime", async (req, res) => {
+  try {
+    const { phone, amount, network } = req.body;
+
+    const response = await axios.post(`${VTpassBaseUrl}/pay`, {
+      request_id: `airtime-${Date.now()}`,
+      serviceID: network, // mtn, airtel, glo, 9mobile
+      amount,
+      phone,
+    }, { auth: VTpassAuth });
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.response?.data || "Transaction Failed" });
+  }
+});
+
+/**
+ * Buy Data
+ */
+app.post("/buy-data", async (req, res) => {
+  try {
+    const { phone, amount, network } = req.body;
+
+    const response = await axios.post(`${VTpassBaseUrl}/pay`, {
+      request_id: `data-${Date.now()}`,
+      serviceID: network, // mtn-data, airtel-data, glo-data, 9mobile-data
+      amount,
+      phone,
+    }, { auth: VTpassAuth });
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.response?.data || "Transaction Failed" });
+  }
+});
+
+/**
+ * Pay Electricity Bill
+ */
+app.post("/pay-electricity", async (req, res) => {
+  try {
+    const { meter_number, disco, amount, phone } = req.body;
+
+    const response = await axios.post(`${VTpassBaseUrl}/pay`, {
+      request_id: `electricity-${Date.now()}`,
+      serviceID: disco, // ikeja-electric, eedc, phcn, etc.
+      amount,
+      phone,
+      billersCode: meter_number,
+    }, { auth: VTpassAuth });
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.response?.data || "Transaction Failed" });
+  }
+});
+
+/**
+ * Verify Transaction
+ */
+app.get("/verify-transaction/:request_id", async (req, res) => {
+  try {
+    const { request_id } = req.params;
+
+    const response = await axios.get(`${VTpassBaseUrl}/requery?request_id=${request_id}`, {
+      auth: VTpassAuth,
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.response?.data || "Verification Failed" });
+  }
+});
+
