@@ -390,8 +390,6 @@ app.post("/reset-password/:token", async (req, res) => {
 });
 // This is the forgot password code Ending ...................................................
 
-
-// This is the start VT PASS API Beginning -------------------------------------------------------------------
 app.get('/paystack', function (req, res) {
   const https = require('https')
 
@@ -434,7 +432,8 @@ app.get('/paystack', function (req, res) {
 });
 // This is the end paystack API Beginning -------------------------------------------------------------------
 
-// This is the end paystack API Beginning -------------------------------------------------------------------
+
+// This is the start VT PASS API Beginning -------------------------------------------------------------------
 
 const VTpassBaseUrl = process.env.VTPASS_BASE_URL;
 const VTpassAuth = {
